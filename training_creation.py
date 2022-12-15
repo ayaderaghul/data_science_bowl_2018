@@ -17,6 +17,8 @@ from metrics import dice_coef, iou
 
 from skimage.morphology import label
 
+from calculate_weight import calculate_weight
+
 IMG_CHANNELS = 3
 TRAIN_PATH = './stage1_train/'
 TEST_PATH = './stage1_test/'
@@ -29,6 +31,7 @@ def getting_X_Y_train():
 
     X_train = np.zeros((len(train_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     Y_train = np.zeros((len(train_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
+    weights = np.zeros((len(train_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.uint8)
     print('Getting and resizing train images and masks ... ')
     sys.stdout.flush()
 
@@ -44,7 +47,7 @@ def getting_X_Y_train():
                                           preserve_range=True), axis=-1)
             mask = np.maximum(mask, mask_)
         Y_train[n] = mask
-
+    	weights[n]=calculate_weight(mask, IMG_HEIGHT, IMG_WIDTH)
     # Get and resize test images
     X_test = np.zeros((len(test_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     sizes_test = []
@@ -76,6 +79,13 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
+# custom loss
+def weighted_loss(y_true,y_pred):        
+    log_y_pred = tf.math.log(y_pred)
+    loss = tf.math.multiply(x=log_y_pred, y=weights)
+    return tf.reduce_sum(loss, axis=1)
+
+
 """ Hyperparaqmeters """
 batch_size = 8
 lr = 1e-4
@@ -86,7 +96,9 @@ csv_path = "files/data.csv"
 
 model = build_unet((IMG_HEIGHT, IMG_WIDTH, 3))
 metrics = [dice_coef, iou, Recall(), Precision()]
-model.compile(loss="binary_crossentropy", optimizer=Adam(lr), metrics=metrics)
+# model.compile(loss="binary_crossentropy", optimizer=Adam(lr), metrics=metrics)
+model.compile(loss=weighted_loss, optimizer=Adam(lr), metrics=metrics)
+
 train_steps = (len(X_train)//batch_size)
 # valid_steps = (len(valid_x)//batch_size)
 callbacks = [
