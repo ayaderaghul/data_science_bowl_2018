@@ -5,7 +5,7 @@ from scipy import ndimage
 from scipy.ndimage import label
 
 
-def calculate_weight(mask, height, width):
+def calculate_weight(mask,masks, height, width):
     w0 = 10
     q = 5
     weight = np.zeros((height, width, 1), dtype=np.uint8)
