@@ -47,7 +47,7 @@ def getting_X_Y_train():
                                           preserve_range=True), axis=-1)
             mask = np.maximum(mask, mask_)
         Y_train[n] = mask
-    	weights[n]=calculate_weight(mask, IMG_HEIGHT, IMG_WIDTH)
+    	weights[n]=calculate_weight(mask,masks, IMG_HEIGHT, IMG_WIDTH)
     # Get and resize test images
     X_test = np.zeros((len(test_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     sizes_test = []
